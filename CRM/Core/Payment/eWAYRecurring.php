@@ -389,6 +389,12 @@ class CRM_Core_Payment_eWAYRecurring extends CRM_Core_Payment
 // Create Unique Trxn Num (First 12 chars of sanitized InvoiceID)
     $uniqueTrnxNum = substr($invoiceReference, 0, 12);
 
+    $commonPaymentDetails = [
+        'TotalAmount'        => substr($amountInCents, 0, 10),
+        'InvoiceNumber'      => substr($uniqueTrnxNum, 0, 64),
+        'InvoiceDescription' => substr($invoiceDescription, 0, 64),
+        'InvoiceReference'   => substr($invoiceReference, 0, 50)
+    ];
 
     if ($this->backOffice) {
       $payment_token = CRM_Utils_Request::retrieve('contact_payment_token', CRM_Utils_Type::typeToString(CRM_Utils_Type::T_INT));
@@ -402,20 +408,15 @@ class CRM_Core_Payment_eWAYRecurring extends CRM_Core_Payment
       } catch (CRM_Core_Exception $e) {
         $this->paymentFailed($params, 'Please select a valid credit card token.');
       }
-      if ($result['is_error']) {
+      if (!empty($result['is_error'])) {
         $this->paymentFailed($params, 'Cannot find the payment token.');
       }
       $token = $result['token'];
       $eWayTransaction = [
         'Customer' => [
-          'TokenCustomerID' =>substr($token,0,16)
+          'TokenCustomerID' => substr($token, 0, 16)
         ],
-        'Payment' => [
-          'TotalAmount' => substr($amountInCents,0,10),
-          'InvoiceNumber' => substr($uniqueTrnxNum,0,64),
-          'InvoiceDescription' => substr($invoiceDescription, 0, 64),
-          'InvoiceReference' => substr($invoiceReference,0,50)
-        ],
+        'Payment' => $commonPaymentDetails,
         'TransactionType' => \Eway\Rapid\Enum\TransactionType::MOTO
       ];
     } else {
@@ -427,13 +428,8 @@ class CRM_Core_Payment_eWAYRecurring extends CRM_Core_Payment
           ->get('cvv_backoffice_required'))
           ? \Eway\Rapid\Enum\TransactionType::MOTO
           : \Eway\Rapid\Enum\TransactionType::PURCHASE),
-        'Payment' => [
-          'TotalAmount' => substr($amountInCents,0,10),
-          'InvoiceNumber' => substr($uniqueTrnxNum,0,64),
-          'InvoiceDescription' => substr($invoiceDescription, 0, 64),
-          'InvoiceReference' => substr($invoiceReference,0,50)
-        ],
-        'CustomerIP' => (isset($params['ip_address'])) ? $params['ip_address'] : '',
+        'Payment' => $commonPaymentDetails,
+        'CustomerIP' => $params['ip_address'] ?? '',
         'Capture' => TRUE,
         'SaveCustomer' => TRUE,
         'Options' => [
