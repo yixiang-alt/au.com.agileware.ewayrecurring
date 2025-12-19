@@ -336,7 +336,15 @@ class CRM_Core_Payment_eWAYRecurring extends CRM_Core_Payment
       throw new CRM_Core_Exception(ts('eWay - Gateway requires curl with SSL support'));
     }
 
+    //----------------------------------------------------------------------------------------------------
+    // Throw error if there are some errors while creating eWay Client.
+    // This could be due to incorrect Api Username or Api Password.
+    //----------------------------------------------------------------------------------------------------
+
     $eWayClient = $this->getEWayClient();
+    if (is_null($eWayClient) || count($eWayClient->getErrors())) {
+      $this->paymentFailed($params, "Error: Unable to create eWay Client object.");
+    }
 
     //-------------------------------------------------------------
     // Prepare some composite data from _paymentProcessor fields, data that is shared across one off and recurring payments.
@@ -345,13 +353,6 @@ class CRM_Core_Payment_eWAYRecurring extends CRM_Core_Payment
     $amountInCents = round(((float) preg_replace('/[\s,]/', '', $params['amount'])) * 100);
     $eWayCustomer = $this->getEWayClientDetailsArray($params);
 
-    //----------------------------------------------------------------------------------------------------
-    // Throw error if there are some errors while creating eWay Client.
-    // This could be due to incorrect Api Username or Api Password.
-    //----------------------------------------------------------------------------------------------------
-
-    if (is_null($eWayClient) || count($eWayClient->getErrors())) {
-      $this->paymentFailed($params, "Error: Unable to create eWay Client object.");
     }
 
     //----------------------------------------------------------------------------------------------------
